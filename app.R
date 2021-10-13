@@ -21,9 +21,6 @@ popularity_crypto_options <- crypto_data %>%
     distinct(Currency_Name)
 
 
-
-
-
 # Define UI for application that draws a histogram
 ui <- fluidPage(
 
@@ -99,7 +96,16 @@ server <- function(input, output) {
     })
     
     output$prediction_plot <- renderPlot({
+        highlighted_region <- dated_crypto_data %>%
+            filter(Currency_Name == input$prediction)
         
+        dated_crypto_data %>%
+            ggplot(aes(x = Date,
+                       y = Price,
+                       group = Currency_Name)) + 
+            geom_point(color = "black") + 
+            geom_smooth(data = highlighted_region, method = "lm", color = "red") +
+            theme_linedraw()
     })
 }
 
