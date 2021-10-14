@@ -1,4 +1,7 @@
 
+#Author:    Emilio Santa Cruz
+#Class:     ISTA 320
+
 
 library(shiny)
 library(tidyverse)
@@ -8,12 +11,14 @@ crypto_data <- read.csv("data/All_combined.csv")
 dated_crypto_data <- crypto_data %>%
     mutate(Date = parse_date(`Date`, "%Y-%m-%d"))
 
+#options sorted by highest recorded price
 price_crypto_options <- crypto_data %>%
     group_by(Currency_Name) %>%
     summarize(max_price = max(Price)) %>%
     arrange(desc(max_price)) %>%
     distinct(Currency_Name)
 
+#options sorted by highest recorded volume
 popularity_crypto_options <- crypto_data %>%
     group_by(Currency_Name) %>%
     summarize(max_vol = max(Vol.)) %>%
@@ -21,22 +26,23 @@ popularity_crypto_options <- crypto_data %>%
     distinct(Currency_Name)
 
 
-# Define UI for application that draws a histogram
 ui <- fluidPage(
 
     # Application title
     titlePanel("Crypto Currency Dashboard"),
 
-    # Sidebar with a slider input for number of bins 
+    # Sidebar with description 
     sidebarLayout(
         sidebarPanel(
             h3("Price, Popularity and Prediction of top 50 cryptocurrencies"),
             p("Click on tabs to choose difference aspects."),
-            p("Selections for crypto ordered by highest current aspect."),
+            p("Price and Predictions sorted by highest recorded price. Popularity sorted by highest recorded volume."),
+            p("2010-2016 removed for clarity of graph due to Bitcoin being created in 2010 in price and prediction plots."),
+            p("2010-2019 removed for clarity of graph due to minimal activity relatively in popularity plot."),
             HTML("Data derived from <a href=https://www.kaggle.com/odins0n/top-50-cryptocurrency-historical-prices>Kaggle</a>")
         ),
 
-        # Show a plot of the generated distribution
+        # Tabs to choose price, popularity and predictions of cryptos
         mainPanel(
            tabsetPanel(type = "tabs",
                        tabPanel("Price",
@@ -58,11 +64,11 @@ ui <- fluidPage(
     )
 )
 
-# Define server logic required to draw a histogram
 server <- function(input, output) {
 
-    output$price_plot <- renderPlot({
+    output$price_plot <- renderPlot({ #price plot
         
+        #data to be highlighted
         highlighted_region <- dated_crypto_data %>%
             filter(Currency_Name == input$price)
         
@@ -75,11 +81,14 @@ server <- function(input, output) {
                        color = "red") + 
             geom_line(data = highlighted_region,
                       color = "red")+
-            theme_linedraw()
+            theme_linedraw() + 
+            xlim(as.Date(c('1/1/2017', '8/24/2021'), format = "%d/%m/%Y"))
             
     })
     
-    output$popularity_plot <- renderPlot({
+    output$popularity_plot <- renderPlot({ #popularity plot
+        
+        #data to be highlighted
         highlighted_region <- dated_crypto_data %>%
             filter(Currency_Name == input$popularity)
         
@@ -92,10 +101,13 @@ server <- function(input, output) {
                        color = "red") + 
             geom_line(data = highlighted_region,
                       color = "red")+
-            theme_linedraw()
+            theme_linedraw() + 
+            xlim(as.Date(c('1/1/2020', '8/24/2021'), format = "%d/%m/%Y"))
     })
     
-    output$prediction_plot <- renderPlot({
+    output$prediction_plot <- renderPlot({ #prediction plot
+        
+        #data to be highlighted
         highlighted_region <- dated_crypto_data %>%
             filter(Currency_Name == input$prediction)
         
@@ -105,7 +117,8 @@ server <- function(input, output) {
                        group = Currency_Name)) + 
             geom_point(color = "black") + 
             geom_smooth(data = highlighted_region, method = "lm", color = "red") +
-            theme_linedraw()
+            theme_linedraw() + 
+            xlim(as.Date(c('1/1/2017', '8/24/2021'), format = "%d/%m/%Y"))
     })
 }
 
