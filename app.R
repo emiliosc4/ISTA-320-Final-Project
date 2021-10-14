@@ -25,6 +25,14 @@ popularity_crypto_options <- crypto_data %>%
     arrange(desc(max_vol)) %>%
     distinct(Currency_Name)
 
+crypto_volitility <- dated_crypto_data %>%
+    group_by(Currency_Name) %>%
+    summarize(average_change = mean(Change..))
+
+crypto_volitility$average_change = abs(crypto_volitility$average_change)
+crypto_volitility <- crypto_volitility%>%
+    arrange(desc(average_change))
+
 
 ui <- fluidPage(
 
@@ -37,9 +45,9 @@ ui <- fluidPage(
             h3("Price, Popularity and Prediction of top 50 cryptocurrencies"),
             p("Click on tabs to choose difference aspects."),
             p("Price and Predictions sorted by highest recorded price. Popularity sorted by highest recorded volume."),
-            p("2010-2016 removed for clarity of graph due to Bitcoin being created in 2010 in price and prediction plots."),
-            p("2010-2019 removed for clarity of graph due to minimal activity relatively in popularity plot."),
-            HTML("Data derived from <a href=https://www.kaggle.com/odins0n/top-50-cryptocurrency-historical-prices>Kaggle</a>")
+            HTML("Data derived from <a href=https://www.kaggle.com/odins0n/top-50-cryptocurrency-historical-prices>Kaggle</a>"),
+            p("Data is a compliation of the current top 50 cryptocurrencies from investing.com as of August 24, 2021."),
+            p("Data is recorded daily with information regarding price, volume, and periodic change.")
         ),
 
         # Tabs to choose price, popularity and predictions of cryptos
@@ -55,11 +63,8 @@ ui <- fluidPage(
                                             "Select Crypto to highlight:",
                                             choices = popularity_crypto_options),
                                 plotOutput("popularity_plot")),
-                       tabPanel("Predictions",
-                                selectInput("prediction",
-                                            "Select Crypto to highlight:",
-                                            choices = price_crypto_options),
-                                plotOutput("prediction_plot")))
+                       tabPanel("Volatility",
+                                plotOutput("volatility_plot")))
         )
     )
 )
@@ -76,11 +81,10 @@ server <- function(input, output) {
             ggplot(aes(x = Date,
                        y = Price,
                        group = Currency_Name)) + 
-            geom_line(color = "black") + 
-            geom_point(data = highlighted_region,
-                       color = "red") + 
-            geom_line(data = highlighted_region,
-                      color = "red")+
+            geom_point(color = "black") + 
+            geom_smooth(data = highlighted_region, method = "lm", color = "cornflowerblue") +
+            labs(caption = "2010-2016 removed for clarity of graph due to Bitcoin being created in 2010",
+                 title = "Predictions of Cryptocurrencies' Price Over Time") +
             theme_linedraw() + 
             xlim(as.Date(c('1/1/2017', '8/24/2021'), format = "%d/%m/%Y"))
             
@@ -98,27 +102,29 @@ server <- function(input, output) {
                        group = Currency_Name)) + 
             geom_line(color = "black") + 
             geom_point(data = highlighted_region,
-                       color = "red") + 
+                       color = "cornflowerblue") + 
             geom_line(data = highlighted_region,
-                      color = "red")+
+                      color = "cornflowerblue")+
+            labs(caption = "2010-2019 removed for clarity of graph due to minimal activity relatively", 
+                 title = "Popularity of Cryptocurrencies Over Time") + 
             theme_linedraw() + 
             xlim(as.Date(c('1/1/2020', '8/24/2021'), format = "%d/%m/%Y"))
     })
     
-    output$prediction_plot <- renderPlot({ #prediction plot
+    output$volatility_plot <- renderPlot({ #volatility plot
         
-        #data to be highlighted
-        highlighted_region <- dated_crypto_data %>%
-            filter(Currency_Name == input$prediction)
         
-        dated_crypto_data %>%
-            ggplot(aes(x = Date,
-                       y = Price,
-                       group = Currency_Name)) + 
-            geom_point(color = "black") + 
-            geom_smooth(data = highlighted_region, method = "lm", color = "red") +
-            theme_linedraw() + 
-            xlim(as.Date(c('1/1/2017', '8/24/2021'), format = "%d/%m/%Y"))
+        crypto_volitility %>%
+            ggplot(aes(x = reorder(Currency_Name, -average_change),
+                       y = average_change,
+                       fill = Currency_Name)) + 
+            geom_bar(position = "identity",
+                     stat = "identity", width = 1) + 
+            labs(caption = "Displays volatility of cryptos in descending order", 
+                 title = "Volatility of Cryptocurrencies") +
+            xlab("Cryptocurrencies") +
+            coord_flip()
+            
     })
 }
 
